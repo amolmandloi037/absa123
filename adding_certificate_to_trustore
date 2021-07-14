@@ -1,0 +1,35 @@
+ADDING A CERTIFICATE TO TRUSTORE
+
+Introduction
+We are downloading ROOT certificates of the URL's so when those URL's are hit by the developers the certificates verify the URL's and allow them to run.
+For this, we are importing various certificates into a single file (here, cacerts). (You can see this on github devops repository under .caerts folder).
+
+Steps to import certificates:
+1. Download required certificate which needs to be imported to trustore
+
+2. Import the certificates on cacert file using keytool import command.
+	a. keytool -import -trustcacerts -alias <<uniquename>> -file <<certificates which needs to be imported>> -keystore <<file in which .cer file will be imported>>
+	   Note: Here, that file is cacerts.
+	   Eg: keytool -import -trustcacerts -alias ebox -file BAGLROOTCA.cer -keystore cacerts
+
+3. Create a secret in openshift namespace
+	a. Create a secret using oc command using the above imported certificate file in required namespace using following command.
+		oc create secret generic <<name_of_secret>> --from-file=<<certificate_filename>>=<<path_where_the_certificatefile_is_present>> -n <<openshift_namespace>>
+		
+		Note: we will be replacing secret name with "cacertmce" as we are using same secret in all the microservices. Also make sure that this has to be done when no deployment is running
+		
+		For eg: if we are updating cacertmce secret with new cacerts certificate file in amol-api-dev namespace then the command would be:
+			oc create secret generic cacertmce --from-file-cacerts=./cacert -n amol-api-dev
+			where,
+					cacertmce = name of secret
+					cacerts = name of certificate file
+					./cacert = location where cacerts is present
+					amol-api-dev = namespace name where secret is to be added
+					
+4. As we are using cacertmce secret in every deployments, we are replacing the above secret with the new one, thus it is not required to mount the newly created secret everytime (because of the same name) 
+   If in case, you have to create a new secret(with a different name) then you need to mount that secret in our deployment config.
+	To mount the secret, follow below steps:
+	i) Edit yaml of the deployment in which you need to add the new secret.
+	ii) Under volume section, change secret name to the new secret name
+5. Deployment will automatically trigger with the current changes.
+   
